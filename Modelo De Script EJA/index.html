@@ -1,0 +1,173 @@
+<!-- Página HTML com Bootstrap para acessar os dados e solicitar atualizações -->
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitoramento das Atividades - Visualização de Dados</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container my-4">
+    <h2 class="mb-4 text-center">Entrega de Atividades - Visualização de Dados</h2>
+
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label for="selectTurma" class="form-label">Selecione a Turma:</label>
+        <select id="selectTurma" class="form-select">
+          <option value="Turma 01">Turma 01</option>
+          <option value="Turma 02">Turma 02</option>
+        </select>
+        <button id="btnTrigger" class="btn btn-primary mt-3">Atualizar Dados</button>
+        <button id="btnTriggerDesafios" class="btn btn-primary mt-3">Relatório de Desafios</button>
+        <button id="btnTriggerLinks" class="btn btn-primary mt-3">Relatório de Miniprojetos</button>
+      </div>
+    </div>
+
+    <!-- Modal Trigger-->
+    <div class="modal fade" id="confirmAbaModal" tabindex="-1" aria-labelledby="confirmAbaLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirmAbaLabel">Confirmar Aba</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <label for="inputNomeAba" class="form-label">Digite o nome da aba onde os dados são salvos:</label>
+            <input type="text" id="inputNomeAba" class="form-control" placeholder="Token">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" id="confirmBtn" class="btn btn-primary">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="table-responsive">
+      <table class="table table-striped table-hover" id="tabelaAlunos">
+        <thead class="table-primary">
+          <tr>
+            <th>Nome do Aluno</th>
+            <th>Email</th>
+            <th>Entregas por Desafios (%)</th>
+            <th>Entregas por Miniprojetos (%)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="detalheModal" tabindex="-1" aria-labelledby="detalheModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="detalheModalLabel">Detalhes do Aluno</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <ul id="detalhesLista" class="list-group"></ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.getElementById('btnTrigger').addEventListener('click', () => {
+      const nomeAba = prompt("Digite o Token Atualizar os Dados:");
+      if (!nomeAba) {
+        alert("Operação cancelada. Você não digitou o Token.");
+        return;
+      }
+
+      google.script.run.withSuccessHandler(msg => {
+        alert(msg);
+        const selectTurma = document.getElementById('selectTurma');
+        carregarAlunos(selectTurma.value);
+      }).criarTriggerRegistrarSituacao(nomeAba);
+    });
+
+
+    document.getElementById("btnTriggerLinks").addEventListener('click', () => {
+      google.script.run
+          .withSuccessHandler(msg => {
+            alert("Relatório dos Miniprojetos gerado com sucesso!")
+          })
+          .gerarRelatorioMiniprojetos();
+    });
+
+    document.getElementById("btnTriggerDesafios").addEventListener('click', () => {
+      google.script.run
+          .withSuccessHandler(msg => {
+            alert("Relatório dos Desafios gerado com sucesso!")
+          })
+          .gerarRelatorioDesafios();
+    });
+
+    function carregarAlunos(turma = 'Turma 01') {
+      google.script.run.withSuccessHandler(function(alunos) {
+        const tbody = document.querySelector("#tabelaAlunos tbody");
+        tbody.innerHTML = '';
+        alunos.forEach((aluno, index) => {
+          const tr = document.createElement('tr');
+
+          const tdNome = document.createElement('td');
+          tdNome.innerHTML = `<a href="#" class="aluno-link" data-index="${index}">${aluno.nome}</a>`;
+          tr.appendChild(tdNome);
+
+          const tdEmail = document.createElement('td');
+          tdEmail.textContent = aluno.email;
+          tr.appendChild(tdEmail);
+
+          // Nova coluna: frequência de desafios
+          const tdFreqDesafios = document.createElement('td');
+          tdFreqDesafios.textContent = aluno.freqDesafios + " %";
+          tr.appendChild(tdFreqDesafios);
+
+          // Nova coluna: frequência de miniprojetos
+          const tdFreqMini = document.createElement('td');
+          tdFreqMini.textContent = aluno.freqMiniprojetos + " %";
+          tr.appendChild(tdFreqMini);
+
+          tbody.appendChild(tr);
+        });
+
+        document.querySelectorAll('.aluno-link').forEach(link => {
+          link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const aluno = alunos[this.dataset.index];
+            const detalhesLista = document.getElementById('detalhesLista');
+            detalhesLista.innerHTML = '';
+            if (aluno.detalhes.length === 0) {
+              detalhesLista.innerHTML = '<li class="list-group-item">Parabéns! Você entregou todas as atividades!</li>';
+            } else {
+              aluno.detalhes.forEach(d => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                li.textContent = `${d.tema} - ${d.dia}: ${d.situacao}`;
+                detalhesLista.appendChild(li);
+              });
+            }
+            const modal = new bootstrap.Modal(document.getElementById('detalheModal'));
+            modal.show();
+          });
+        });
+      }).getAlunosData(turma);
+    }
+
+    window.onload = function() {
+      const selectTurma = document.getElementById('selectTurma');
+      carregarAlunos(selectTurma.value);
+      selectTurma.addEventListener('change', () => carregarAlunos(selectTurma.value));
+    };
+  </script>
+</body>
+</html>
