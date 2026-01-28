@@ -16,27 +16,57 @@
 <body>
 
 <div class="container py-4">
-  <h3 class="mb-4 text-primary fw-bold"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Dashboard Classroom</h3>
+  <h3 class="mb-4 text-primary fw-bold"><i class="bi bi-file-earmark-x-fill"></i>Painel de Desempenho dos Estudantes</h3>
   
   <div class="row g-4">
     <div class="col-md-4">
       <div class="card card-custom p-4">
         <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-gear-fill me-2"></i>Sincronização</h6>
+
+
+        <label class="small fw-bold mb-2">Turmas para Sincronizar:</label>
+        <div class="btn-group btn-group-sm w-100 mb-2" role="group">
+          <input type="radio" class="btn-check" name="filtroStatus" id="verAtivas" checked>
+          <label class="btn btn-outline-primary" for="verAtivas">Ativas</label>
+
+          <input type="radio" class="btn-check" name="filtroStatus" id="verInativas">
+          <label class="btn btn-outline-primary" for="verInativas">Arquivadas</label>
+        </div>
+        <div id="checkArea" class="scroll-box mb-3 shadow-sm">Carregando...</div>
         
         <label class="small fw-bold mb-1">Modalidade:</label>
         <select id="modalidade" class="form-select form-select-sm mb-3 shadow-sm">
           <option value="EJA">EJA (Mínimo 3 Desafios)</option>
           <option value="EM">Ensino Médio (Mínimo 2 Desafios)</option>
         </select>
-        
-        <label class="small fw-bold mb-1">Turmas para Processar:</label>
-        <div id="checkArea" class="scroll-box mb-3 shadow-sm">Carregando turmas...</div>
-        
+
         <button id="btnSync" class="btn btn-primary btn-sm w-100 fw-bold shadow">
           <i class="bi bi-arrow-repeat me-2"></i>SINCRONIZAR SELECIONADAS
         </button>
       </div>
+
+
+      <div class="mt-4">
+      <div class="card card-custom p-4">
+        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-file-earmark-text-fill me-2"></i>Relatórios Extras</h6>
+
+
+        <label class="small fw-bold mb-2">Relatório dos Desafios</label>
+        <button id="btnRelatorioDesafios" class="btn btn-success btn-sm w-100 fw-bold shadow">
+          <i class="bi bi-arrow-repeat me-2"></i>SINCRONIZAR DESAFIOS
+        </button>
+        <label class="small fw-bold mb-2">Relatótio dos Miniprojetos:</label>
+        <div class="mb-2 text-danger">
+            <i class="bi bi-exclamation-circle me-2"></i>Funciona apenas com arquivos do Google Workspace
+        </div>
+        <button id="btnRelatorioMiniprojeto" class="btn btn-success btn-sm w-100 fw-bold shadow">
+          <i class="bi bi-arrow-repeat me-2"></i>SINCRONIZAR MINIPROJETOS
+        </button>
+      </div>
+      </div>
+
     </div>
+
 
     <div class="col-md-8">
       <div class="card card-custom p-4">
@@ -48,7 +78,7 @@
         <div class="table-responsive">
           <table class="table table-hover align-middle">
             <thead class="table-light">
-              <tr><th>Estudante</th><th class="text-center">Desafios</th><th class="text-center">Projetos</th></tr>
+              <tr><th>Estudante</th><th class="text-center">Desafios</th><th class="text-center">Miniprojetos</th></tr>
             </thead>
             <tbody id="corpo">
               <tr><td colspan="3" class="text-center text-muted py-4">Selecione uma turma para visualizar os dados</td></tr>
@@ -67,19 +97,48 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  let listaAlunos = [];
-  
+
+  let todasAsTurmasGlobal = [];
+
   window.onload = () => {
     google.script.run.withSuccessHandler(turmas => {
-      const area = document.getElementById('checkArea');
-      const sel = document.getElementById('selTurma');
-      area.innerHTML = ''; sel.innerHTML = '<option selected disabled>Escolha para visualizar...</option>';
-      turmas.forEach(t => {
-        area.innerHTML += `<div class="form-check"><input type="checkbox" class="t-chk form-check-input" value="${t.nome}"> <span class="small">${t.nome}</span></div>`;
-        sel.innerHTML += `<option value="${t.nome} (${t.id})">${t.nome} (${t.id})</option>`;
-      });
+      todasAsTurmasGlobal = turmas;
+      renderizarListas('ACTIVE'); // Inicia mostrando as ativas
     }).getListaTurmas();
+    atualizarDataNaTela(); //
   };
+
+  // Função para filtrar e renderizar na tela
+  function renderizarListas(statusDesejado) {
+    const area = document.getElementById('checkArea');
+    const sel = document.getElementById('selTurma');
+    
+    // Limpa as áreas
+    area.innerHTML = '';
+    sel.innerHTML = '<option selected disabled>Escolha para visualizar...</option>';
+
+    const filtradas = todasAsTurmasGlobal.filter(t => 
+      statusDesejado === 'ACTIVE' ? t.status === 'ACTIVE' : t.status !== 'ACTIVE'
+    );
+
+    if (filtradas.length === 0) {
+      area.innerHTML = '<div class="text-muted small p-2">Nenhuma turma encontrada.</div>';
+      return;
+    }
+
+    filtradas.forEach(t => {
+      const identificadorTurma = `${t.nome} (${t.id})`;
+      // Adiciona na área de sincronização
+      area.innerHTML += `<div class="form-check"><input type="checkbox" class="t-chk form-check-input" value="${t.id}"> <span class="small">${identificadorTurma}</span></div>`;
+      
+      // Adiciona no seletor de visualização
+      sel.innerHTML += `<option value="${t.nome} (${t.id})">${t.nome} (${t.id})</option>`;
+    });
+  }
+
+  // Eventos para os botões de filtro
+  document.getElementById('verAtivas').onclick = () => renderizarListas('ACTIVE');
+  document.getElementById('verInativas').onclick = () => renderizarListas('ARCHIVED');
 
   document.getElementById('selTurma').onchange = (e) => {
     const corpo = document.getElementById('corpo');
@@ -142,6 +201,77 @@
       btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>SINCRONIZAR SELECIONADAS';
     }).prepararAtualizacao(selecionadas, mod);
   };
+
+  document.getElementById('btnRelatorioMiniprojeto').onclick = () => {
+  // 1. Captura os IDs das turmas que estão marcadas no momento
+  const selecionadas = Array.from(document.querySelectorAll('.t-chk:checked')).map(c => c.value);
+  const mod = document.getElementById('modalidade').value;
+
+  if (selecionadas.length === 0) {
+    alert("Por favor, selecione as turmas nos checkboxes antes de gerar o relatório.");
+    return;
+  }
+
+  const btn = document.getElementById('btnRelatorioMiniprojeto');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gravando Seleção...';
+
+  google.script.run.withSuccessHandler(() => {
+    
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando Planilha...';
+
+    // 3. Agora que o servidor já "sabe" quais turmas processar, chamamos o relatório
+    google.script.run
+      .withSuccessHandler(url => {
+        alert("Relatório gerado com sucesso!");
+        if (url) window.open(url, '_blank'); // Abre a planilha automaticamente
+        btn.disabled = false;
+        btn.innerHTML = "Relatório de Miniprojetos";
+      })
+      .withFailureHandler(erro => {
+        alert("Erro ao gerar: " + erro);
+        btn.disabled = false;
+      })
+      .gerarRelatorioMiniprojetos();
+
+  }).prepararAtualizacao(selecionadas, mod); 
+};
+
+// 1. Captura os IDs das turmas marcadas nos checkboxes
+  document.getElementById('btnRelatorioDesafios').onclick = () => {
+  const selecionadas = Array.from(document.querySelectorAll('.t-chk:checked')).map(c => c.value);
+  const mod = document.getElementById('modalidade').value;
+
+  if (selecionadas.length === 0) {
+    alert("Selecione as turmas nos checkboxes antes de gerar o relatório.");
+    return;
+  }
+
+  const btn = document.getElementById('btnRelatorioDesafios');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando Planilha...';
+
+ // 2. Primeiro, salva a seleção atual no servidor
+  google.script.run.withSuccessHandler(() => {
+    
+    // 3. Após salvar, chama a geração do relatório de desafios
+    google.script.run.withSuccessHandler(url => {
+      alert("Relatório de Desafios gerado com sucesso!");
+      if (url && url.startsWith("http")) {
+        window.open(url, '_blank'); // Abre a planilha em nova aba
+      }
+      btn.disabled = false;
+      btn.innerHTML = "Relatório de Desafios";
+    })
+    .withFailureHandler(erro => {
+      alert("Erro ao gerar relatório: " + erro);
+      btn.disabled = false;
+    })
+    .gerarRelatorioDesafios();
+
+  }).prepararAtualizacao(selecionadas, mod); // Garante que o servidor saiba quais IDs usar
+};
+
 </script>
 </body>
 </html>

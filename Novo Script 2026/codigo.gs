@@ -1,23 +1,38 @@
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
-      .setTitle('Monitoramento Classroom - Seletivo');
+      .setTitle('Monitoramento Classroom');
 }
 
+/**
+ * Busca todas as turmas e inclui o status (Active, Archived, etc.)
+ */
 function getListaTurmas() {
-  const turmas = Classroom.Courses.list().courses || [];
-  return turmas.map(t => ({ id: t.id, nome: t.name }));
+  try {
+    // Buscamos todas as turmas sem filtro inicial para processar no frontend
+    const response = Classroom.Courses.list();
+    const turmas = response.courses || [];
+    
+    return turmas.map(t => ({
+      id: t.id,
+      nome: t.name,
+      status: t.courseState // 'ACTIVE', 'ARCHIVED', 'PROVISIONED' ou 'DECLINED'
+    })).sort((a,b) => a.nome.localeCompare(b.nome));
+  } catch (e) {
+    Logger.log("Erro ao buscar turmas: " + e);
+    return [];
+  }
 }
 
-function prepararAtualizacao(nomesTurmas, modalidade) {
-  if (!nomesTurmas || nomesTurmas.length === 0) return "Erro: Nenhuma turma selecionada.";
+function prepararAtualizacao(idsTurmas, modalidade) {
+  if (!idsTurmas || idsTurmas.length === 0) return "Erro: Nenhuma turma selecionada.";
   
   // SEGURANÇA: Garante que modalidade seja uma string e nunca nula/undefined
   const modalidadeValida = (modalidade && typeof modalidade === 'string') ? modalidade : "EJA";
   
-  const prop = PropertiesService.getScriptProperties();
+  const prop = PropertiesService.getUserProperties();
   
   try {
-    prop.setProperty('TURMAS_PARA_ATUALIZAR', JSON.stringify(nomesTurmas));
+    prop.setProperty('TURMAS_PARA_ATUALIZAR', JSON.stringify(idsTurmas));
     prop.setProperty('MODALIDADE_ENSINO', modalidadeValida); // Agora o valor é garantido 
   } catch (e) {
     return "Erro ao salvar propriedades: " + e.message;
@@ -80,7 +95,7 @@ function extrairPendencias(linha, cabecalho) {
   let pendencias = [];
   // Percorre da coluna 2 até a antepenúltima
   for (let i = 2; i < linha.length - 2; i++) {
-    if (linha[i] !== 'Presente' && linha[i] !== '') {
+    if (linha[i] !== 'Entregue' && linha[i] !== '') {
       pendencias.push({
         atividade: cabecalho[i],
         status: linha[i]

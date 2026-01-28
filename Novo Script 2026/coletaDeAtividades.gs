@@ -1,42 +1,40 @@
 /*
 Coleta as atividades apenas das turmas selecionadas pelo usuário.
+Grava os dados em uma planilha na conta do usuário logado.
 */
 
 function registrarSituacaoPorTemas() {
-  // Recupera as turmas selecionadas salvas nas propriedades do script
-  const prop = PropertiesService.getScriptProperties();
-  const modalidade = prop.getProperty('MODALIDADE_ENSINO') || 'EJA'; // Padrão EJA
-  const turmasSelecionadasJSON = prop.getProperty('TURMAS_PARA_ATUALIZAR');
+  // Recupera as configurações salvas nas propriedades do usuário
+  const prop = PropertiesService.getUserProperties();
+  const modalidade = prop.getProperty('MODALIDADE_ENSINO') || 'EJA';
+  const idsSelecionados = JSON.parse(prop.getProperty('TURMAS_PARA_ATUALIZAR') || '[]');
 
+  // Critério dinâmico baseado na modalidade selecionada no Frontend
   const minimoDesafios = (modalidade === 'EM') ? 2 : 3;
   
-  if (!turmasSelecionadasJSON) {
+  if (!idsSelecionados || idsSelecionados.length === 0) {
     Logger.log("Nenhuma turma selecionada para atualização.");
     return;
   }
   
-  const nomesParaFiltrar = JSON.parse(turmasSelecionadasJSON);
-
   let turmasResponse;
   try {
-    // Busca todas as turmas para encontrar os IDs correspondentes aos nomes selecionados
+    // Busca todas as turmas para encontrar os objetos correspondentes aos IDs selecionados
     turmasResponse = Classroom.Courses.list().courses || [];
   } catch (e) {
-    Logger.log("Erro ao listar turmas: " + e);
+    Logger.log("Erro ao listar turmas do Classroom: " + e);
     return;
   }
 
-  // Filtra apenas as turmas que estão na lista de selecionadas
-  const TURMAS = turmasResponse
-    .filter(t => nomesParaFiltrar.includes(t.name))
-    .map(t => ({ id: t.id, nome: t.name }));
+  // Filtra apenas as turmas que estão na lista de IDs selecionados no Frontend
+  const TURMAS = turmasResponse.filter(t => idsSelecionados.includes(t.id));
 
   const FILTROS = ['Miniprojeto', 'Desafio'];
-  
   const NOME_PLANILHA = "Monitoramento_Classroom_Pessoal";
   let planilha;
-  const arquivos = DriveApp.getFilesByName(NOME_PLANILHA);
   
+  // Localiza ou cria a planilha no Drive do usuário
+  const arquivos = DriveApp.getFilesByName(NOME_PLANILHA);
   if (arquivos.hasNext()) {
     planilha = SpreadsheetApp.open(arquivos.next());
   } else {
@@ -44,7 +42,8 @@ function registrarSituacaoPorTemas() {
   }
 
   TURMAS.forEach(turma => {
-    const nomeIdentificador = `${turma.nome} (${turma.id})`;
+    // Identificador único da aba para evitar sobrescrever turmas de mesmo nome
+    const nomeIdentificador = `${turma.name} (${turma.id})`;
     let aba = planilha.getSheetByName(nomeIdentificador);
 
     if (aba) {
@@ -53,6 +52,7 @@ function registrarSituacaoPorTemas() {
       aba = planilha.insertSheet(nomeIdentificador);
     }
 
+    // Busca atividades da turma específica
     let atividades = Classroom.Courses.CourseWork.list(turma.id).courseWork || [];
     atividades = atividades.filter(a =>
       FILTROS.some(f => a.title && a.title.toLowerCase().includes(f.toLowerCase())) && a.topicId
@@ -63,18 +63,19 @@ function registrarSituacaoPorTemas() {
       return;
     }
 
-    // Agrupamento por temas
+    // Agrupamento por temas (Tópicos)
     const temas = {};
     atividades.forEach(a => {
       if (!temas[a.topicId]) temas[a.topicId] = [];
       temas[a.topicId].push(a);
     });
 
+    // Mapeamento de nomes de tópicos
     const topicos = Classroom.Courses.Topics.list(turma.id).topic || [];
     const mapaTopicos = {};
     topicos.forEach(t => { mapaTopicos[t.topicId] = t.name; });
 
-    // Cabeçalho e Lógica de Processamento (Igual ao código anterior)
+    // Montagem do Cabeçalho
     const cabecalho = ['Nome do Aluno', 'Email'];
     const listaTopicosOrdenada = Object.keys(temas).map(id => ({
       id,
@@ -83,15 +84,15 @@ function registrarSituacaoPorTemas() {
     })).sort((a, b) => a.nome.localeCompare(b.nome));
 
     listaTopicosOrdenada.forEach(t => {
-      cabecalho.push(`${t.nome} - Dia 1 (Desafios)`);
-      cabecalho.push(`${t.nome} - Dia 2 (Miniprojeto)`);
+      cabecalho.push(`${t.nome} - [DESAFIOS]`);
+      cabecalho.push(`${t.nome} - [MINIPROJETO]`);
     });
 
     cabecalho.push('Frequência Desafios (%)');
     cabecalho.push('Frequência Miniprojetos (%)');
     aba.appendRow(cabecalho);
 
-    // Pré-busca
+    // Pré-busca de Submissões para otimizar performance (evita múltiplas chamadas dentro do loop de alunos)
     listaTopicosOrdenada.forEach(t => {
       t.desafios = [];
       t.miniprojetos = [];
@@ -102,18 +103,19 @@ function registrarSituacaoPorTemas() {
         try {
           submissions = Classroom.Courses.CourseWork.StudentSubmissions.list(turma.id, atividade.id).studentSubmissions || [];
         } catch (e) {
-          Logger.log('Erro ao buscar StudentSubmissions para atividade ' + atividade.id + ': ' + e);
           submissions = [];
         }
+        
+        const dadosAtividade = { atividade, urlForm, submissions };
         if (/desafio/i.test(atividade.title || '')) {
-          t.desafios.push({ atividade, urlForm, submissions });
+          t.desafios.push(dadosAtividade);
         } else if (/miniprojeto/i.test(atividade.title || '')) {
-          t.miniprojetos.push({ atividade, urlForm, submissions });
+          t.miniprojetos.push(dadosAtividade);
         }
       });
     });
 
-    // Alunos
+    // Busca e ordena lista de alunos
     const alunos = Classroom.Courses.Students.list(turma.id).students || [];
     alunos.sort((a, b) => a.profile.name.fullName.localeCompare(b.profile.name.fullName));
 
@@ -121,14 +123,14 @@ function registrarSituacaoPorTemas() {
 
     alunos.forEach(aluno => {
       const linha = [aluno.profile.name.fullName, aluno.profile.emailAddress];
-
       let presencasDesafios = 0;
       let presencasMiniprojetos = 0;
-      let tituloDesafio = [];
 
       listaTopicosOrdenada.forEach(topico => {
-        // DIA 1: desafios
+        // --- PROCESSAMENTO DESAFIOS ---
         let totalDesafiosEntregues = 0;
+        let pendentesNestaAula = [];
+
         topico.desafios.forEach(desafio => {
           let entregue = false;
           if (desafio.urlForm) {
@@ -139,22 +141,23 @@ function registrarSituacaoPorTemas() {
               entregue = true;
             }
           }
+          
           if (entregue) totalDesafiosEntregues++;
-          else tituloDesafio.push(desafio.atividade.title);
+          else pendentesNestaAula.push(desafio.atividade.title);
         });
 
         let situacaoDia1 = '';
         if (totalDesafiosEntregues >= minimoDesafios) {
-          situacaoDia1 = 'Presente';
+          situacaoDia1 = 'Entregue';
           presencasDesafios++;
         } else if (totalDesafiosEntregues > 0) {
-          situacaoDia1 = tituloDesafio.sort().join("\n");
+          situacaoDia1 = pendentesNestaAula.sort().join("\n");
         } else {
           situacaoDia1 = 'Falta';
         }
         linha.push(situacaoDia1);
 
-        // DIA 2: miniprojetos
+        // --- PROCESSAMENTO MINIPROJETOS ---
         let miniprojetoEntregue = false;
         topico.miniprojetos.forEach(miniprojeto => {
           if (miniprojetoEntregue) return;
@@ -170,31 +173,36 @@ function registrarSituacaoPorTemas() {
           }
         });
 
-        let situacaoDia2 = '';
         if (miniprojetoEntregue) {
-          situacaoDia2 = 'Presente';
+          linha.push('Entregue');
           presencasMiniprojetos++;
         } else {
-          situacaoDia2 = 'Falta';
+          linha.push('Falta');
         }
-        linha.push(situacaoDia2);
       });
 
-      const freqDesafios = totalTopicos > 0 ? Math.round((presencasDesafios / totalTopicos) * 100) : 0;
-      const freqMiniprojetos = totalTopicos > 0 ? Math.round((presencasMiniprojetos / totalTopicos) * 100) : 0;
+      // Cálculo das frequências finais nas colunas da direita
+      const freqD = totalTopicos > 0 ? Math.round((presencasDesafios / totalTopicos) * 100) : 0;
+      const freqM = totalTopicos > 0 ? Math.round((presencasMiniprojetos / totalTopicos) * 100) : 0;
 
-      linha.push(freqDesafios);
-      linha.push(freqMiniprojetos);
+      linha.push(freqD, freqM);
       aba.appendRow(linha);
     });
   });
-  
-  // Limpa a seleção após o processamento
+
+  // Grava a data da última atualização com sucesso
+  const agora = new Date();
+  const dataFormatada = Utilities.formatDate(agora, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
+  prop.setProperty('ULTIMA_ATUALIZACAO', dataFormatada);
+
+  // Limpa as propriedades de controle após o processamento
   prop.deleteProperty('MODALIDADE_ENSINO');
   prop.deleteProperty('TURMAS_PARA_ATUALIZAR');
 }
 
-// Função auxiliar mantida
+/**
+ * Verifica se o aluno respondeu ao formulário via FormApp
+ */
 function alunoRespondeuFormularioFormsApp(email, urlForm) {
   try {
     const form = FormApp.openByUrl(urlForm);
@@ -203,6 +211,8 @@ function alunoRespondeuFormularioFormsApp(email, urlForm) {
       const respondente = resposta.getRespondentEmail();
       if (respondente && respondente.toLowerCase() === (email || '').toLowerCase()) return true;
     }
-  } catch (e) { }
+  } catch (e) {
+    // Retorna falso se não houver permissão ou o formulário não existir
+  }
   return false;
 }
