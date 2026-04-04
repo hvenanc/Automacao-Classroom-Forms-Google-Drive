@@ -1,120 +1,147 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <style>
-    body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
-    .card-custom { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .aluno-link { color: #0d6efd; cursor: pointer; font-weight: 600; text-decoration: underline; }
-    .scroll-box { max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; background: white; border-radius: 8px; }
-    .badge-custom { font-size: 0.85rem; padding: 0.5em 0.8em; }
+    body {
+      background-color: #f4f7f6;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .card-custom {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .aluno-link {
+      color: #0d6efd;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    .scroll-box {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+    }
+
+    .badge-custom {
+      font-size: 0.85rem;
+      padding: 0.5em 0.8em;
+    }
   </style>
 </head>
+
 <body>
 
-<div class="container py-4">
-  <h3 class="mb-4 text-primary fw-bold"><i class="bi bi-file-earmark-x-fill"></i>Painel de Desempenho dos Estudantes</h3>
-  
-  <div class="row g-4">
-    <div class="col-md-4">
-      <div class="card card-custom p-4">
-        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-gear-fill me-2"></i>Sincronização</h6>
+  <div class="container py-4">
+    <h3 class="mb-4 text-primary fw-bold"><i class="bi bi-file-earmark-x-fill"></i>Painel de Desempenho dos Estudantes
+    </h3>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card card-custom p-4">
+          <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-gear-fill me-2"></i>Sincronização</h6>
 
 
-        <label class="small fw-bold mb-2">Turmas para Sincronizar:</label>
-        <div class="btn-group btn-group-sm w-100 mb-2" role="group">
-          <input type="radio" class="btn-check" name="filtroStatus" id="verAtivas" checked>
-          <label class="btn btn-outline-primary" for="verAtivas">Ativas</label>
+          <label class="small fw-bold mb-2">Turmas para Sincronizar:</label>
+          <div class="btn-group btn-group-sm w-100 mb-2" role="group">
+            <input type="radio" class="btn-check" name="filtroStatus" id="verAtivas" checked>
+            <label class="btn btn-outline-primary" for="verAtivas">Ativas</label>
 
-          <input type="radio" class="btn-check" name="filtroStatus" id="verInativas">
-          <label class="btn btn-outline-primary" for="verInativas">Arquivadas</label>
-        </div>
-        <div id="checkArea" class="scroll-box mb-3 shadow-sm">Carregando...</div>
-        
-        <label class="small fw-bold mb-1">Modalidade:</label>
-        <select id="modalidade" class="form-select form-select-sm mb-3 shadow-sm">
+            <input type="radio" class="btn-check" name="filtroStatus" id="verInativas">
+            <label class="btn btn-outline-primary" for="verInativas">Arquivadas</label>
+          </div>
+          <div id="checkArea" class="scroll-box mb-3 shadow-sm">Carregando...</div>
+
+          <label class="small fw-bold mb-1">Modalidade:</label>
+          <select id="modalidade" class="form-select form-select-sm mb-3 shadow-sm">
           <option value="EJA">EJA (Mínimo 3 Desafios)</option>
           <option value="EM">Ensino Médio (Mínimo 2 Desafios)</option>
         </select>
 
-        <button id="btnSync" class="btn btn-primary btn-sm w-100 fw-bold shadow">
-          <i class="bi bi-arrow-repeat me-2"></i>Sincronizar Turma Selecionada
+          <button id="btnSync" class="btn btn-primary btn-sm w-100 fw-bold shadow">
+          <i class="bi bi-arrow-repeat me-2"></i>Sincronizar Turma
         </button>
-      </div>
-
-
-      <div class="mt-4">
-      <div class="card card-custom p-4">
-        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-file-earmark-text-fill me-2"></i>Relatórios Extras</h6>
-
-
-        <label class="small fw-bold mb-2">Relatório dos Desafios</label>
-        <button id="btnRelatorioDesafios" class="btn btn-success btn-sm w-100 fw-bold shadow">
-          <i class="bi bi-arrow-repeat me-2"></i>Gerar Relatório dos Desafios
-        </button>
-        <label class="small fw-bold mb-2 mt-2">Relatótio dos Miniprojetos:</label>
-        <div class="mb-2 text-danger">
-            <i class="bi bi-exclamation-circle me-2"></i>Verifica se os links enviados são públicos (Google Workspace)
         </div>
-        <button id="btnRelatorioMiniprojeto" class="btn btn-success btn-sm w-100 fw-bold shadow">
-          <i class="bi bi-arrow-repeat me-2"></i>Gerar Relatório dos Miniprojetos
-        </button>
-      </div>
-      </div>
-
-      <div class="mt-4">
-      <div class="card card-custom p-4">
-        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-file-earmark-text-fill me-2"></i>Casos de Uso</h6>
 
 
-        <label class="small fw-bold mb-2">Documentação</label>
-        <button id="btnRelatorioDesafios" class="btn btn-dark btn-sm w-100 fw-bold shadow">
-          <i class="bi bi-markdown me-2"></i>Acesse o Tutorial de Uso
-        </button>
-        <label class="small fw-bold mb-2 mt-2">Feedback</label>
-        <a href="https://github.com/hvenanc" target="_blank" class="btn btn-dark btn-sm w-100 fw-bold shadow">
-          <i class="bi bi-github me-2"></i>Fornceça o Feedback
-        </a>
-      </div>
-      </div>
-
-    </div>
-
-
-    <div class="col-md-8">
-      <div class="card card-custom p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h6 class="fw-bold m-0 text-secondary"><i class="bi bi-person-check-fill me-2"></i>Frequência</h6>
-          <select id="selTurma" class="form-select form-select-sm w-50 shadow-sm"></select>
-        </div>
+        <div class="mt-4">
+          <div class="card card-custom p-4">
+            <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-file-earmark-text-fill me-2"></i>Relatórios Extras
+            </h6>
         
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead class="table-light">
-              <tr><th>Estudante</th><th class="text-center">Desafios</th><th class="text-center">Miniprojetos</th></tr>
-            </thead>
-            <tbody id="corpo">
-              <tr><td colspan="3" class="text-center text-muted py-4">Selecione uma turma para visualizar os dados</td></tr>
-            </tbody>
-          </table>
+        
+            <label class="small fw-bold mb-2">Relatório dos Desafios</label>
+            <button id="btnRelatorioDesafios" class="btn btn-success btn-sm w-100 fw-bold shadow">
+                <i class="bi bi-arrow-repeat me-2"></i>Sincronizar Desafios
+            </button>
+            <label class="small fw-bold mb-2">Relatótio dos Miniprojetos:</label>
+            <div class="mb-2 text-danger">
+              <i class="bi bi-exclamation-circle me-2"></i>Funciona apenas com arquivos do Google Workspace
+            </div>
+            <button id="btnRelatorioMiniprojeto" class="btn btn-success btn-sm w-100 fw-bold shadow">
+                <i class="bi bi-arrow-repeat me-2"></i>Sincronizar Miniprojetos
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="col-md-8">
+        <div class="card card-custom p-4">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h6 class="fw-bold m-0 text-secondary"><i class="bi bi-person-check-fill me-2"></i>Frequência</h6>
+            <select id="selTurma" class="form-select form-select-sm w-50 shadow-sm"></select>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Estudante</th>
+                  <th class="text-center">Desafios</th>
+                  <th class="text-center">Miniprojetos</th>
+                </tr>
+              </thead>
+              <tbody id="corpo">
+                <tr>
+                  <td colspan="3" class="text-center text-muted py-4">Selecione uma turma para visualizar os dados</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<div class="modal fade" id="mP" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow">
-  <div class="modal-header bg-light"><h5 class="modal-title fw-bold" id="mNome"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-  <div class="modal-body p-0"><ul id="mList" class="list-group list-group-flush"></ul></div>
-</div></div></div>
+  <div class="modal fade" id="mP" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold" id="mNome"></h5><button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <ul id="mList" class="list-group list-group-flush"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-
-  let todasAsTurmasGlobal = [];
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let todasAsTurmasGlobal = [];
 
   window.onload = () => {
     google.script.run.withSuccessHandler(turmas => {
@@ -205,18 +232,50 @@
 }
 
   document.getElementById('btnSync').onclick = () => {
-    const selecionadas = Array.from(document.querySelectorAll('.t-chk:checked')).map(c => c.value);
-    const mod = document.getElementById('modalidade').value;
-    if(selecionadas.length === 0) return alert("Selecione ao menos uma turma!");
+  // 1. Captura os IDs das turmas marcadas e a modalidade
+  const selecionadas = Array.from(document.querySelectorAll('.t-chk:checked')).map(c => c.value);
+  const mod = document.getElementById('modalidade').value;
+
+  if (selecionadas.length === 0) {
+    alert("Selecione ao menos uma turma!");
+    return;
+  }
+
+  const btn = document.getElementById('btnSync');
+  const originalHtml = '<i class="bi bi-arrow-repeat me-2"></i>Sincronizar Turma Selecionada';
+
+  // 2. Inicia o feedback visual (Desabilita e coloca o spinner)
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sincronizando Atividades...';
+
+  // 3. Primeira chamada: Salva as configurações no servidor
+  google.script.run.withSuccessHandler(() => {
     
-    const btn = document.getElementById('btnSync');
-    btn.disabled = true; btn.innerHTML = 'Processando...';
-    
-    google.script.run.withSuccessHandler(msg => {
-      alert(msg);
-      btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>SINCRONIZAR SELECIONADAS';
-    }).prepararAtualizacao(selecionadas, mod);
-  };
+    // Atualiza o texto do botão para a segunda fase
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando Dados na Planilha';
+
+    // 4. Segunda chamada: Executa a lógica de sincronização pesada
+    google.script.run
+      .withSuccessHandler(msg => {
+        alert("Sincronização iniciada com sucesso! Você receberá um e-mail ao finalizar. Verifique sua caixa de SPAM.");
+        
+        // Finaliza o feedback visual e reabilita o botão
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        
+        // Opcional: Se houver uma turma selecionada no seletor de frequência, atualiza a tabela
+        const sel = document.getElementById('selTurma');
+        if(sel && sel.value) carregarDadosTabela(sel.value);
+      })
+      .withFailureHandler(erro => {
+        alert("Erro na sincronização: " + erro);
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      })
+      .registrarSituacaoPorTemas(); // Chama a função que processa os dados
+
+  }).prepararAtualizacao(selecionadas, mod); 
+};
 
   document.getElementById('btnRelatorioMiniprojeto').onclick = () => {
   // 1. Captura os IDs das turmas que estão marcadas no momento
@@ -230,7 +289,7 @@
 
   const btn = document.getElementById('btnRelatorioMiniprojeto');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gravando Seleção...';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sincronizando Miniprojetos...';
 
   google.script.run.withSuccessHandler(() => {
     
@@ -265,7 +324,7 @@
 
   const btn = document.getElementById('btnRelatorioDesafios');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando Planilha...';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sincronizando Desafios...';
 
  // 2. Primeiro, salva a seleção atual no servidor
   google.script.run.withSuccessHandler(() => {
@@ -288,6 +347,7 @@
   }).prepararAtualizacao(selecionadas, mod); // Garante que o servidor saiba quais IDs usar
 };
 
-</script>
+  </script>
 </body>
+
 </html>

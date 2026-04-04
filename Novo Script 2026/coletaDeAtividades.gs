@@ -198,6 +198,9 @@ function registrarSituacaoPorTemas() {
   // Limpa as propriedades de controle após o processamento
   prop.deleteProperty('MODALIDADE_ENSINO');
   prop.deleteProperty('TURMAS_PARA_ATUALIZAR');
+
+  const urlFinal = planilha.getUrl();
+  enviarAlertaConclusao("Relatório de Atividades", urlFinal);
 }
 
 /**
