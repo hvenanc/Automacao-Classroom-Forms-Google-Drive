@@ -86,6 +86,8 @@ function gerarRelatorioMiniprojetos() {
   sheet.autoResizeColumns(1, 6);
   
   const finalUrl = ss.getUrl();
+  // Chama a função do seu arquivo externo (notificacoes.gs)
+  enviarAlertaConclusao("Relatório de Miniprojetos", finalUrl);
   Logger.log(`Concluído! Planilha gerada: ${finalUrl}`);
   return "Relatório gerado com sucesso: " + finalUrl;
 }

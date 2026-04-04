@@ -82,6 +82,8 @@ function gerarRelatorioDesafios() {
 
   sheet.autoResizeColumns(1, 6);
   const urlFinal = ss.getUrl();
+  // Chama a função do seu arquivo externo (notificacoes.gs)
+  enviarAlertaConclusao("Relatório de Desafios", urlFinal);
   Logger.log(`Concluído! Planilha gerada: ${urlFinal}`);
   return urlFinal; // Retorna a URL para o frontend abrir
 }
